@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+db.sqlite3
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+bun.lock
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Docker
+pgdata/
+
+# Env
+.env
+
+# Reports & docs
+*.md
+*.typ
+*.pdf
+
+# Media uploads
+backend/media/
+
+# Screenshots
+screenshots/
+
+# Archives
+*.zip
+
+# Images (non-code assets)
+*.jpeg
+*.jpg
+*.png
+
+# Claude
+.claude/

@@ -9,6 +9,7 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Select";
 import { Spinner } from "../../components/ui/Spinner";
+import { Modal } from "../../components/ui/Modal";
 import { StepIndicator } from "../../components/StepIndicator";
 import { SelectableGrid } from "../../components/SelectableGrid";
 import {
@@ -27,6 +28,8 @@ import {
   Crown,
   Gift,
   PenLine,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -64,6 +67,7 @@ export function CreateStoryPage() {
   const [behaviorId, setBehaviorId] = useState<string | null>(null);
   const [customBehavior, setCustomBehavior] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
 
   useEffect(() => {
     api.get<ConfigResponse>("/config/")
@@ -91,6 +95,7 @@ export function CreateStoryPage() {
       navigate("/create-story/generating", { state: { storyId: res.id } });
     } catch {
       setSubmitting(false);
+      setErrorModalOpen(true);
     }
   };
 
@@ -107,7 +112,24 @@ export function CreateStoryPage() {
   const behaviors = config?.behaviors ?? [];
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full sm:max-w-3xl sm:mx-auto">
+      {/* Error modal */}
+      <Modal open={errorModalOpen} onClose={() => setErrorModalOpen(false)}>
+        <div className="text-center py-2">
+          <div className="mx-auto h-16 w-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">حدث خطأ!</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            لم نتمكن من إنشاء القصة. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.
+          </p>
+          <Button onClick={() => setErrorModalOpen(false)}>
+            <RefreshCw className="h-4 w-4" />
+            حاول مرة أخرى
+          </Button>
+        </div>
+      </Modal>
+
       <PageHeader title="إنشاء قصة جديدة" description="اختر تفاصيل القصة لطفلك" />
 
       <Card>

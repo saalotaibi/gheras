@@ -66,7 +66,8 @@ def generate_story(prompt_payload):
 
     template = STORY_TEMPLATES.get(behavior_key, STORY_TEMPLATES["default"])
 
-    time.sleep(3)
+    # Simulate a real AI generation process (2 minutes total across all steps)
+    time.sleep(120)
 
     return {
         "title": template["title"].format(child_name=child_name),
@@ -75,12 +76,12 @@ def generate_story(prompt_payload):
 
 
 def generate_cover(prompt_payload):
-    time.sleep(1)
+    time.sleep(0)
     return PLACEHOLDER_COVER
 
 
 def generate_illustrations(prompt_payload, num_pages):
-    time.sleep(2)
+    time.sleep(0)
     return [
         PLACEHOLDER_ILLUSTRATIONS[i % len(PLACEHOLDER_ILLUSTRATIONS)]
         for i in range(num_pages)

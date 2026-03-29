@@ -23,9 +23,5 @@ urlpatterns = [
     path("api/", include(router.urls)),
 ]
 
-# In development, Django serves media files directly.
-# In production, WhiteNoise handles static files via middleware,
-# and media files are served through the web server or a CDN.
-# We still add the static() helper so media works in dev.
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

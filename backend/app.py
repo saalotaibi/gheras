@@ -12,7 +12,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-key-change-in-pro
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
-# CORS: read from env or fall back to localhost for dev
 _cors_origins_env = os.environ.get("CORS_ALLOWED_ORIGINS", "")
 if _cors_origins_env:
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
@@ -92,7 +91,6 @@ settings.configure(
             },
         },
     ],
-    # Email configuration
     EMAIL_BACKEND=os.environ.get(
         "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
     ),
@@ -102,7 +100,6 @@ settings.configure(
     EMAIL_HOST_USER=os.environ.get("EMAIL_HOST_USER", ""),
     EMAIL_HOST_PASSWORD=os.environ.get("EMAIL_HOST_PASSWORD", ""),
     DEFAULT_FROM_EMAIL=os.environ.get("DEFAULT_FROM_EMAIL", "noreply@gheras.app"),
-    # Production security settings
     SECURE_BROWSER_XSS_FILTER=not DEBUG,
     SECURE_CONTENT_TYPE_NOSNIFF=not DEBUG,
     SESSION_COOKIE_SECURE=not DEBUG,

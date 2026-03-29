@@ -103,12 +103,12 @@ def _send_story_ready_email(story):
                 f"Open the app to start reading!\n\n"
                 f"— Gheras"
             ),
-            from_email=None,  # uses DEFAULT_FROM_EMAIL
+            from_email=None,
             recipient_list=[user.email],
             fail_silently=True,
         )
     except Exception:
-        pass  # email failure should never break anything
+        pass
 
 
 def _run_generation(story_id, prompt_payload):
@@ -137,7 +137,6 @@ def _run_generation(story_id, prompt_payload):
         story.status = "completed"
         story.save(update_fields=["status"])
 
-        # Send email notification to the parent
         _send_story_ready_email(story)
 
     except Exception:
@@ -170,7 +169,6 @@ def _build_story_pdf(story):
         bottomMargin=2.5 * cm,
     )
 
-    # Styles
     title_style = ParagraphStyle(
         "title",
         fontSize=28,
@@ -214,7 +212,6 @@ def _build_story_pdf(story):
 
     elements = []
 
-    # --- Cover page ---
     elements.append(Spacer(1, 6 * cm))
     elements.append(Paragraph(story.title or "Untitled Story", title_style))
     elements.append(Spacer(1, 1 * cm))
@@ -223,7 +220,6 @@ def _build_story_pdf(story):
     elements.append(Paragraph(f"Age {story.child.age}", child_style))
     elements.append(PageBreak())
 
-    # --- Story pages ---
     pages = story.pages.all().order_by("page_number")
     for page in pages:
         elements.append(Paragraph(f"— Page {page.page_number} —", page_num_style))
@@ -275,7 +271,6 @@ class StoryViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # "other" means the parent typed a custom behavior
         if data["targetBehavior"] == "other":
             custom_label = data.get("customBehavior", "").strip() or "أخرى"
 
@@ -405,7 +400,6 @@ def stats(request):
     stories_read = ReadingLog.objects.filter(user=user, finished_at__isnull=False).values("story").distinct().count()
     tasks_completed = BehaviorTask.objects.filter(user=user).count()
 
-    # Calculate reading streak (consecutive days with finished reading logs)
     from django.utils import timezone
     from datetime import timedelta
     today = timezone.now().date()
@@ -422,19 +416,16 @@ def stats(request):
         else:
             break
 
-    # Behavior breakdown for radar chart
     behavior_counts = {}
     for bt in BehaviorTask.objects.filter(user=user):
         behavior_counts[bt.behavior] = behavior_counts.get(bt.behavior, 0) + 1
 
-    # Also count from stories' target_behavior for stories that were read
     read_story_ids = ReadingLog.objects.filter(
         user=user, finished_at__isnull=False
     ).values_list("story_id", flat=True).distinct()
     for story in Story.objects.filter(id__in=read_story_ids):
         behavior_counts[story.target_behavior] = behavior_counts.get(story.target_behavior, 0) + 1
 
-    # Build radar data - map behavior keys to labels
     behavior_labels = {b.key: b.label for b in Behavior.objects.all()}
     radar_data = []
     for key, count in behavior_counts.items():
@@ -444,8 +435,6 @@ def stats(request):
             "count": count,
         })
 
-    # Weekly reading activity (last 7 days)
-    # Python weekday(): Mon=0..Sun=6. Map to Arabic names.
     day_names_map = {
         0: "الاثنين", 1: "الثلاثاء", 2: "الأربعاء",
         3: "الخميس", 4: "الجمعة", 5: "السبت", 6: "الأحد",

@@ -29,7 +29,6 @@ const BEHAVIOR_PROMPTS: Record<string, { question: string; emoji: string }> = {
   gratitude: { question: "هل ستشكر من حولك؟", emoji: "🎁" },
 };
 
-// Simulated read-aloud: each paragraph gets ~5 seconds
 const SECONDS_PER_PARAGRAPH = 5;
 
 export function StoryViewerPage() {
@@ -40,15 +39,12 @@ export function StoryViewerPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const readStartRef = useRef(Date.now());
 
-  // Read-aloud state
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // PDF download state
   const [downloading, setDownloading] = useState(false);
 
-  // Post-story task state
   const [taskCompleted, setTaskCompleted] = useState(false);
   const [taskResponse, setTaskResponse] = useState<string | null>(null);
 
@@ -62,7 +58,6 @@ export function StoryViewerPage() {
       .finally(() => setLoading(false));
   }, [storyId]);
 
-  // Log reading start
   useEffect(() => {
     if (!story) return;
     api
@@ -75,13 +70,11 @@ export function StoryViewerPage() {
       .catch(() => {});
   }, [story]);
 
-  // Split current page text into paragraphs for highlighting
   const paragraphs =
     story?.pages[currentPage]?.text
       .split(/\n+/)
       .filter((p) => p.trim().length > 0) ?? [];
 
-  // Stop playback when page changes
   useEffect(() => {
     stopPlayback();
     setHighlightIndex(-1);
@@ -116,7 +109,6 @@ export function StoryViewerPage() {
     }, SECONDS_PER_PARAGRAPH * 1000);
   }, [isPlaying, highlightIndex, paragraphs.length, stopPlayback]);
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -138,7 +130,6 @@ export function StoryViewerPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      // download failed silently
     } finally {
       setDownloading(false);
     }
@@ -148,10 +139,8 @@ export function StoryViewerPage() {
     if (!story) return;
     setTaskResponse(response);
 
-    // Calculate time spent
     const timeSpent = Math.round((Date.now() - readStartRef.current) / 1000);
 
-    // Send behavior task
     await api
       .post("/tasks/", {
         childId: story.childId,
@@ -161,7 +150,6 @@ export function StoryViewerPage() {
       })
       .catch(() => {});
 
-    // Log finished reading
     await api
       .post("/reading-logs/", {
         childId: story.childId,
@@ -280,7 +268,6 @@ export function StoryViewerPage() {
         </div>
       </div>
 
-      {/* Post-story behavior task card */}
       {showTaskCard && (
         <div className="mt-6 bg-gradient-to-br from-primary/5 to-accent-gold/10 rounded-2xl border-2 border-primary/20 p-8 text-center">
           <div className="text-5xl mb-4">{behaviorPrompt.emoji}</div>
@@ -310,7 +297,6 @@ export function StoryViewerPage() {
         </div>
       )}
 
-      {/* Completion message */}
       {taskCompleted && isLastPage && (
         <div className="mt-6 bg-green-50 rounded-2xl border border-green-200 p-6 text-center">
           <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-2" />

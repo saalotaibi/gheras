@@ -6,7 +6,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 const ONBOARDING_KEY = "gheras_onboarding_seen";
 
 interface TourStep {
-  target: string; // CSS selector
+  target: string;
   title: string;
   description: string;
   position: "top" | "bottom" | "left" | "right";
@@ -38,7 +38,6 @@ export function OnboardingTour() {
   useEffect(() => {
     const seen = localStorage.getItem(ONBOARDING_KEY);
     if (!seen) {
-      // Small delay so the sidebar renders first
       const timer = setTimeout(() => setActive(true), 800);
       return () => clearTimeout(timer);
     }
@@ -61,13 +60,12 @@ export function OnboardingTour() {
     let aLeft = 0;
     let dir: "top" | "bottom" | "left" | "right" = step.position;
 
-    // Position based on preferred direction
     if (step.position === "left") {
       top = rect.top + rect.height / 2 - tooltipH / 2;
       left = rect.right + gap;
       aTop = tooltipH / 2 - 6;
       aLeft = -6;
-      dir = "right"; // arrow points right toward tooltip from element (actually left of tooltip)
+      dir = "right";
     } else if (step.position === "right") {
       top = rect.top + rect.height / 2 - tooltipH / 2;
       left = rect.left - tooltipW - gap;
@@ -88,7 +86,6 @@ export function OnboardingTour() {
       dir = "bottom";
     }
 
-    // Clamp to viewport
     top = Math.max(8, Math.min(top, window.innerHeight - tooltipH - 8));
     left = Math.max(8, Math.min(left, window.innerWidth - tooltipW - 8));
 
@@ -104,7 +101,6 @@ export function OnboardingTour() {
     return () => window.removeEventListener("resize", positionTooltip);
   }, [active, currentStep, positionTooltip]);
 
-  // Highlight the target element
   useEffect(() => {
     if (!active) return;
     const step = tourSteps[currentStep];
@@ -150,19 +146,16 @@ export function OnboardingTour() {
 
   return (
     <>
-      {/* Backdrop overlay */}
       <div
         className="fixed inset-0 z-50 bg-black/40 transition-opacity"
         onClick={dismiss}
       />
 
-      {/* Tooltip */}
       <div
         ref={tooltipRef}
         className="fixed z-[60] w-[280px] rounded-xl bg-white p-4 shadow-2xl border border-gray-200 animate-in fade-in"
         style={tooltipStyle}
       >
-        {/* Arrow */}
         <div
           className="absolute h-3 w-3 rotate-45 bg-white border border-gray-200"
           style={{
@@ -178,7 +171,6 @@ export function OnboardingTour() {
           }}
         />
 
-        {/* Close button */}
         <button
           onClick={dismiss}
           className="absolute top-2 end-2 rounded-md p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"

@@ -66,7 +66,6 @@ def generate_story(prompt_payload):
 
     template = STORY_TEMPLATES.get(behavior_key, STORY_TEMPLATES["default"])
 
-    # Simulate a real AI generation process (2 minutes total across all steps)
     time.sleep(120)
 
     return {

@@ -37,8 +37,8 @@ const funFacts = [
 ];
 
 const POLL_INTERVAL = 5000;
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-const EXPECTED_DURATION_MS = 2 * 60 * 1000; // ~2 minutes expected
+const TIMEOUT_MS = 5 * 60 * 1000;
+const EXPECTED_DURATION_MS = 2 * 60 * 1000;
 
 export function StoryGeneratingPage() {
   const navigate = useNavigate();
@@ -59,14 +59,12 @@ export function StoryGeneratingPage() {
   const factTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(Date.now());
 
-  // Redirect if no storyId
   useEffect(() => {
     if (!storyId) {
       navigate("/create-story", { replace: true });
     }
   }, [storyId, navigate]);
 
-  // Animated progress bar that fills over ~2 minutes, caps at 90%
   useEffect(() => {
     const stepMs = 1000;
     const totalSteps = EXPECTED_DURATION_MS / stepMs;
@@ -87,7 +85,6 @@ export function StoryGeneratingPage() {
     };
   }, []);
 
-  // Cycle through fun facts every 8 seconds
   useEffect(() => {
     factTimerRef.current = setInterval(() => {
       setCurrentFactIndex((prev) => (prev + 1) % funFacts.length);
@@ -98,12 +95,10 @@ export function StoryGeneratingPage() {
     };
   }, []);
 
-  // Timeout after 5 minutes
   useEffect(() => {
     if (!storyId) return;
 
     timeoutRef.current = setTimeout(() => {
-      // Only trigger timeout if not already completed/failed
       setTimedOut(true);
       setErrorModalOpen(true);
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -116,7 +111,6 @@ export function StoryGeneratingPage() {
     };
   }, [storyId]);
 
-  // Poll status every 5 seconds
   useEffect(() => {
     if (!storyId) return;
 
@@ -136,7 +130,6 @@ export function StoryGeneratingPage() {
           setErrorModalOpen(true);
         }
       } catch {
-        // network error, keep polling
       }
     }, POLL_INTERVAL);
 
@@ -152,7 +145,6 @@ export function StoryGeneratingPage() {
     if (factTimerRef.current) clearInterval(factTimerRef.current);
   }, []);
 
-  // Auto-navigate on completion
   useEffect(() => {
     if (completed && storyId) {
       const timeout = setTimeout(() => {
@@ -162,7 +154,6 @@ export function StoryGeneratingPage() {
     }
   }, [completed, storyId, navigate]);
 
-  // Update step indicator based on progress
   useEffect(() => {
     if (completed) return;
     if (progress < 25) setActiveStepIndex(0);
@@ -179,7 +170,6 @@ export function StoryGeneratingPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[70vh]">
-      {/* Error / Timeout Modal */}
       <Modal
         open={errorModalOpen}
         onClose={() => setErrorModalOpen(false)}
@@ -213,7 +203,6 @@ export function StoryGeneratingPage() {
       </Modal>
 
       <Card className="w-full max-w-lg text-center">
-        {/* Spinner / Check icon */}
         <div className="mb-6">
           <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
             {completed ? (
@@ -243,7 +232,6 @@ export function StoryGeneratingPage() {
               : "يرجى الانتظار بينما نصنع قصة رائعة لطفلك"}
         </p>
 
-        {/* Progress bar */}
         {!failed && !timedOut && (
           <div className="mb-6">
             <div className="flex items-center justify-between text-sm mb-2">
@@ -254,7 +242,6 @@ export function StoryGeneratingPage() {
           </div>
         )}
 
-        {/* Generation steps */}
         {!failed && !timedOut && (
           <div className="space-y-3 text-start mb-6">
             {generationSteps.map((step, index) => {
@@ -304,7 +291,6 @@ export function StoryGeneratingPage() {
           </div>
         )}
 
-        {/* Fun fact card */}
         {!completed && !failed && !timedOut && (
           <div className="rounded-xl bg-accent-gold/10 border border-accent-gold/20 p-4 text-start">
             <div className="flex items-start gap-3">
@@ -322,7 +308,6 @@ export function StoryGeneratingPage() {
           </div>
         )}
 
-        {/* Retry button for error states (visible even without modal) */}
         {(failed || timedOut) && (
           <div className="mt-4 flex items-center justify-center gap-3">
             <Button onClick={handleRetry}>

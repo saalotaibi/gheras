@@ -1,8 +1,11 @@
+import io
 import threading
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.db import close_old_connections
+from django.http import FileResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -87,6 +90,27 @@ class ChildViewSet(viewsets.ModelViewSet):
         return Child.objects.filter(user=self.request.user)
 
 
+def _send_story_ready_email(story):
+    """Send an email to the parent when the story is done."""
+    try:
+        user = story.user
+        child_name = story.child.name
+        send_mail(
+            subject=f"{child_name}'s story is ready to read!",
+            message=(
+                f"Hi {user.first_name or user.username},\n\n"
+                f'The story "{story.title}" for {child_name} is now ready. '
+                f"Open the app to start reading!\n\n"
+                f"— Gheras"
+            ),
+            from_email=None,  # uses DEFAULT_FROM_EMAIL
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass  # email failure should never break anything
+
+
 def _run_generation(story_id, prompt_payload):
     close_old_connections()
     try:
@@ -113,6 +137,9 @@ def _run_generation(story_id, prompt_payload):
         story.status = "completed"
         story.save(update_fields=["status"])
 
+        # Send email notification to the parent
+        _send_story_ready_email(story)
+
     except Exception:
         try:
             story = Story.objects.get(id=story_id)
@@ -120,6 +147,100 @@ def _run_generation(story_id, prompt_payload):
             story.save(update_fields=["status"])
         except Story.DoesNotExist:
             pass
+
+
+def _build_story_pdf(story):
+    """Generate a styled PDF for a story using ReportLab."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=2.5 * cm,
+        rightMargin=2.5 * cm,
+        topMargin=3 * cm,
+        bottomMargin=2.5 * cm,
+    )
+
+    # Styles
+    title_style = ParagraphStyle(
+        "title",
+        fontSize=28,
+        leading=36,
+        alignment=TA_CENTER,
+        spaceAfter=20,
+        textColor=HexColor("#30949E"),
+    )
+    child_style = ParagraphStyle(
+        "child",
+        fontSize=18,
+        leading=24,
+        alignment=TA_CENTER,
+        spaceAfter=10,
+        textColor=HexColor("#555555"),
+    )
+    page_num_style = ParagraphStyle(
+        "pagenum",
+        fontSize=14,
+        leading=18,
+        alignment=TA_CENTER,
+        spaceAfter=16,
+        textColor=HexColor("#30949E"),
+    )
+    body_style = ParagraphStyle(
+        "body",
+        fontSize=14,
+        leading=22,
+        alignment=TA_RIGHT,
+        spaceAfter=12,
+        textColor=HexColor("#333333"),
+    )
+    illust_style = ParagraphStyle(
+        "illust",
+        fontSize=10,
+        leading=14,
+        alignment=TA_CENTER,
+        spaceAfter=10,
+        textColor=HexColor("#999999"),
+    )
+
+    elements = []
+
+    # --- Cover page ---
+    elements.append(Spacer(1, 6 * cm))
+    elements.append(Paragraph(story.title or "Untitled Story", title_style))
+    elements.append(Spacer(1, 1 * cm))
+    elements.append(Paragraph(f"A story for {story.child.name}", child_style))
+    elements.append(Spacer(1, 0.5 * cm))
+    elements.append(Paragraph(f"Age {story.child.age}", child_style))
+    elements.append(PageBreak())
+
+    # --- Story pages ---
+    pages = story.pages.all().order_by("page_number")
+    for page in pages:
+        elements.append(Paragraph(f"— Page {page.page_number} —", page_num_style))
+        elements.append(Spacer(1, 0.5 * cm))
+        elements.append(Paragraph(page.text, body_style))
+        elements.append(Spacer(1, 0.5 * cm))
+        if page.illustration_url:
+            elements.append(
+                Paragraph(f"[Illustration: {page.illustration_url}]", illust_style)
+            )
+        elements.append(Spacer(1, 1 * cm))
+        if page != pages.last():
+            elements.append(PageBreak())
+
+    doc.build(elements)
+    buf.seek(0)
+    return buf
 
 
 class StoryViewSet(viewsets.ModelViewSet):
@@ -192,7 +313,7 @@ class StoryViewSet(viewsets.ModelViewSet):
 
         return Response(
             {"id": story.id, "status": story.status},
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_202_ACCEPTED,
         )
 
     @action(detail=True, methods=["get"], url_path="status")
@@ -202,6 +323,23 @@ class StoryViewSet(viewsets.ModelViewSet):
             "id": story.id,
             "status": story.status,
         })
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, pk=None):
+        story = self.get_object()
+        if story.status != "completed":
+            return Response(
+                {"error": "Story is not ready yet"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        pdf_buffer = _build_story_pdf(story)
+        filename = f"{story.title or 'story'}.pdf"
+        return FileResponse(
+            pdf_buffer,
+            as_attachment=True,
+            filename=filename,
+            content_type="application/pdf",
+        )
 
 
 @api_view(["POST"])

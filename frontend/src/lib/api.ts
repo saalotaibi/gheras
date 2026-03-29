@@ -45,6 +45,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function downloadBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Token ${token}`;
+  }
+  const res = await fetch(`/api${path}`, { headers });
+  if (!res.ok) {
+    throw new Error(`Download failed: ${res.status}`);
+  }
+  return res.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, data?: unknown) =>
@@ -56,4 +69,5 @@ export const api = {
     request<T>(path, { method: "POST", body: data }),
   putForm: <T>(path: string, data: FormData) =>
     request<T>(path, { method: "PUT", body: data }),
+  download: (path: string) => downloadBlob(path),
 };

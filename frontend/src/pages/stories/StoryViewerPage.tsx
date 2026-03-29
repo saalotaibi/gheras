@@ -10,6 +10,7 @@ import {
   Play,
   Pause,
   Download,
+  Loader2,
   Share2,
   ArrowRight,
   Sparkles,
@@ -43,6 +44,9 @@ export function StoryViewerPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // PDF download state
+  const [downloading, setDownloading] = useState(false);
 
   // Post-story task state
   const [taskCompleted, setTaskCompleted] = useState(false);
@@ -119,6 +123,27 @@ export function StoryViewerPage() {
     };
   }, []);
 
+  const handleDownload = async () => {
+    if (!story || downloading) return;
+    setDownloading(true);
+    try {
+      const blob = await api.download(`/stories/${story.id}/download/`);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeTitle = story.title.replace(/[^a-zA-Z0-9\u0600-\u06FF\s-]/g, "").trim() || "story";
+      a.download = `story-${safeTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // download failed silently
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleTaskResponse = async (response: "yes" | "try") => {
     if (!story) return;
     setTaskResponse(response);
@@ -182,7 +207,7 @@ export function StoryViewerPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -191,13 +216,13 @@ export function StoryViewerPage() {
             <ArrowRight className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{story.title}</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900">{story.title}</h1>
             <p className="text-sm text-gray-500">
               قصة {story.childName} · {totalPages} صفحات
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ps-11 sm:ps-0">
           <Button
             variant={isPlaying ? "primary" : "secondary"}
             size="sm"
@@ -208,29 +233,29 @@ export function StoryViewerPage() {
             ) : (
               <Play className="h-4 w-4" />
             )}
-            {isPlaying ? "إيقاف" : "استماع"}
+            <span className="hidden sm:inline">{isPlaying ? "إيقاف" : "استماع"}</span>
           </Button>
-          <Button variant="secondary" size="sm">
-            <Download className="h-4 w-4" />
-            تحميل
+          <Button variant="secondary" size="sm" onClick={handleDownload} disabled={downloading}>
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">{downloading ? "جاري التحميل..." : "تحميل"}</span>
           </Button>
           <Button variant="secondary" size="sm">
             <Share2 className="h-4 w-4" />
-            مشاركة
+            <span className="hidden sm:inline">مشاركة</span>
           </Button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 min-h-[500px]">
-          <div className="bg-gray-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:min-h-[500px]">
+          <div className="bg-gray-50 aspect-square md:aspect-auto">
             <img
               src={page.illustrationUrl}
               alt={`صفحة ${page.pageNumber}`}
               className="h-full w-full object-cover"
             />
           </div>
-          <div className="flex flex-col justify-center p-8 md:p-12">
+          <div className="flex flex-col justify-center p-5 sm:p-8 md:p-12">
             <div className="space-y-3">
               {paragraphs.map((para, idx) => (
                 <p

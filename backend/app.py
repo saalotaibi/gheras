@@ -72,7 +72,9 @@ settings.configure(
     STATIC_ROOT=str(BASE_DIR / "staticfiles"),
     STORAGES={
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     },
     TEMPLATES=[
